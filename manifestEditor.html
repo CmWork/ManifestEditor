@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Manifest Editor</title>
+        <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+        <link href="./dist/jsoneditor.min.css" rel="stylesheet" type="text/css">
+        <script type="text/javascript" src="./dist/jsoneditor.min.js"></script>
+        <script src="https://code.jquery.com/jquery-1.9.1.min.js"></script>
+
+        <style type="text/css">
+        body {
+          font: 10.5pt arial;
+          color: #4d4d4d;
+          line-height: 150%;
+          width: 100%;
+          height: 100%;
+          margin: 0;
+        }
+        code {
+          background-color: #f5f5f5;
+        }
+        #jsoneditor {
+          width: 100%;
+          height: 100%;
+        }
+        .load_container {
+            max-height: 20px;
+        }
+        .edit_container {
+            background-color: teal;
+            margin: 0 auto;
+            height: 100%;
+            width: 100%;
+            position: absolute;
+            top: 20px;
+            display: table;
+        }
+        .tab_view {
+            background-color: red;
+            width: 200px;
+            min-height: 100%;
+            float: left;
+        }
+        .tree {
+            width: 100%;
+            height: 700px;
+            overflow: auto;
+        }
+        .editor {
+            background-color: yellow;
+            width: auto;
+            height: 700px;
+            overflow: hidden;
+        }
+
+        /* Tab view */
+            div.tab_view { font-size: 80%; font-family: 'Lucida Grande', Verdana, Arial, Sans-Serif; }
+            ul#tabs { list-style-type: none; margin: 30px 0 0 0; padding: 0 0 0.3em 0; }
+            ul#tabs li { display: inline; }
+            ul#tabs li a { color: #42454a; background-color: #dedbde; border: 1px solid #c9c3ba; border-bottom: none; padding: 0.3em; text-decoration: none; }
+            ul#tabs li a:hover { background-color: #f1f0ee; }
+            ul#tabs li a.selected { color: #000; background-color: #f1f0ee; font-weight: bold; padding: 0.7em 0.3em 0.38em 0.3em; }
+            div.tabContent { border: 1px solid #c9c3ba; padding: 0.5em; background-color: #f1f0ee; }
+            div.tabContent.hide { display: none; }
+        </style>
+
+        <!-- File selector -->
+        <!-- Editor -->
+        <script>
+            var editor;
+            var reader = new FileReader();
+            reader.onloadend = function(e) {
+                var result = JSON.parse(this.result);
+                editor.set(result);
+
+                // CADEN: add json parsing here for cmd, tag filters
+            };
+
+            // open file selector
+            function handleFileSelect(evt) {
+                var files = evt.target.files; // FileList object
+
+                // files is a FileList of File objects. List some properties.
+                var output = [];
+                f = files[0];
+                output.push('<div style="float: left; background-color: white;"><strong>', escape(f.name), '</strong> (', f.type || 'n/a', ') - ',
+                      f.size, ' bytes, last modified: ',
+                      f.lastModifiedDate ? f.lastModifiedDate.toLocaleDateString() : 'n/a',
+                      '</div>');
+
+                reader.readAsText(f);
+                document.getElementById('list').innerHTML = '<div>' + output.join('') + '</div>';
+            }
+
+            // create the editor
+            $('document').ready(function() {
+                document.getElementById('files').addEventListener('change', handleFileSelect, false);
+
+                var container = document.getElementById("jsoneditor");
+                var options = {
+                    mode: 'code',
+                    modes: ['code', 'text', 'tree'], // allowed modes
+                    onError: function (err) {
+                        alert(err.toString());
+                    },
+                    onModeChange: function (newMode, oldMode) {
+                        console.log('Mode switched from', oldMode, 'to', newMode);
+                    }
+                };
+                editor = new JSONEditor(container, options);
+            });
+        </script>
+
+        <!-- Tab view -->
+        <script>
+            var tabLinks = new Array();
+            var contentDivs = new Array();
+
+            function init() {
+
+              // Grab the tab links and content divs from the page
+              var tabListItems = document.getElementById('tabs').childNodes;
+              for ( var i = 0; i < tabListItems.length; i++ ) {
+                if ( tabListItems[i].nodeName == "LI" ) {
+                  var tabLink = getFirstChildWithTagName( tabListItems[i], 'A' );
+                  var id = getHash( tabLink.getAttribute('href') );
+                  tabLinks[id] = tabLink;
+                  contentDivs[id] = document.getElementById( id );
+                }
+              }
+
+              // Assign onclick events to the tab links, and
+              // highlight the first tab
+              var i = 0;
+
+              for ( var id in tabLinks ) {
+                tabLinks[id].onclick = showTab;
+                tabLinks[id].onfocus = function() { this.blur() };
+                if ( i == 0 ) tabLinks[id].className = 'selected';
+                i++;
+              }
+
+              // Hide all content divs except the first
+              var i = 0;
+
+              for ( var id in contentDivs ) {
+                if ( i != 0 ) contentDivs[id].className = 'tabContent hide';
+                i++;
+              }
+            }
+
+            function showTab() {
+              var selectedId = getHash( this.getAttribute('href') );
+
+              // Highlight the selected tab, and dim all others.
+              // Also show the selected content div, and hide all others.
+              for ( var id in contentDivs ) {
+                if ( id == selectedId ) {
+                  tabLinks[id].className = 'selected';
+                  contentDivs[id].className = 'tabContent';
+                } else {
+                  tabLinks[id].className = '';
+                  contentDivs[id].className = 'tabContent hide';
+                }
+              }
+
+              // Stop the browser following the link
+              return false;
+            }
+
+            function getFirstChildWithTagName( element, tagName ) {
+              for ( var i = 0; i < element.childNodes.length; i++ ) {
+                if ( element.childNodes[i].nodeName == tagName ) return element.childNodes[i];
+              }
+            }
+
+            function getHash( url ) {
+              var hashPos = url.lastIndexOf ( '#' );
+              return url.substring( hashPos + 1 );
+            }
+        </script>
+    </head>
+    <body>
+        <div class="load_container">
+            <div class="load_bar">
+                <input type="file" id="files" name="files[]" multiple />
+                <output id="list" style="float: right;"></output>
+            </div>
+        </div>
+
+        <div class="edit_container" onload="init()">
+            <div class="tab_view">
+                <ul id="tabs">
+                  <li><a href="#about">Commands</a></li>
+                  <li><a href="#advantages">Tags</a></li>
+                  <li><a href="#usage">Others</a></li>
+                </ul>
+                
+                <div class="tabContent" id="about">
+                  <h2>About JavaScript tabs</h2>
+                  <div>
+                    <p>JavaScript tabs partition your Web page content into tabbed sections. Only one section at a time is visible.</p>
+                    <p>The code is written in such a way that the page degrades gracefully in browsers that don't support JavaScript or CSS.</p>
+                  </div>
+                </div>
+                <div class="tabContent" id="advantages">
+                    <h2>Advantages</h2>
+                  <div>
+                    <p>JavaScript tabs partition your Web page content into tabbed sections. Only one section at a time is visible.</p>
+                    <p>The code is written in such a way that the page degrades gracefully in browsers that don't support JavaScript or CSS.</p>
+                  </div>
+                </div>
+                <div class="tabContent" id="usage">
+                    <h2>Usage</h2>
+                  <div>
+                    <p>JavaScript tabs partition your Web page content into tabbed sections. Only one section at a time is visible.</p>
+                    <p>The code is written in such a way that the page degrades gracefully in browsers that don't support JavaScript or CSS.</p>
+                  </div>
+                </div>
+            </div>
+
+            <div class="editor">
+                <div id="jsoneditor"></div>
+            </div>
+        </div>
+    </body>
+</html>
