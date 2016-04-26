@@ -6,6 +6,8 @@
         <link href="./dist/jsoneditor.min.css" rel="stylesheet" type="text/css">
         <script type="text/javascript" src="./dist/jsoneditor.min.js"></script>
         <script src="https://code.jquery.com/jquery-1.9.1.min.js"></script>
+        <script src="https://bgrins.github.io/filereader.js/filereader.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2014-11-29/FileSaver.min.js"></script>
 
         <style type="text/css">
         body {
@@ -71,7 +73,13 @@
             var reader = new FileReader();
             reader.onloadend = function(e) {
                 var result = JSON.parse(this.result);
-                editor.set(result);
+                editor.set(result);            // Save a JSON document
+
+                // Save JSON locally
+                document.getElementById('saveDocument').onclick = function () {
+                    var blob = new Blob([editor.getText()], {type: 'application/json;charset=utf-8'});
+                    saveAs(blob, 'document_' + Date.now() + '.json');
+                };
 
                 // CADEN: add json parsing here for cmd, tag filters
             };
@@ -83,13 +91,7 @@
                 // files is a FileList of File objects. List some properties.
                 var output = [];
                 f = files[0];
-                output.push('<div style="float: left; background-color: white;"><strong>', escape(f.name), '</strong> (', f.type || 'n/a', ') - ',
-                      f.size, ' bytes, last modified: ',
-                      f.lastModifiedDate ? f.lastModifiedDate.toLocaleDateString() : 'n/a',
-                      '</div>');
-
                 reader.readAsText(f);
-                document.getElementById('list').innerHTML = '<div>' + output.join('') + '</div>';
             }
 
             // create the editor
@@ -117,7 +119,6 @@
             var contentDivs = new Array();
 
             function init() {
-
               // Grab the tab links and content divs from the page
               var tabListItems = document.getElementById('tabs').childNodes;
               for ( var i = 0; i < tabListItems.length; i++ ) {
@@ -143,6 +144,7 @@
               // Hide all content divs except the first
               var i = 0;
 
+              console.log(contentDivs);
               for ( var id in contentDivs ) {
                 if ( i != 0 ) contentDivs[id].className = 'tabContent hide';
                 i++;
@@ -180,11 +182,11 @@
             }
         </script>
     </head>
-    <body>
+    <body onload=init()>
         <div class="load_container">
             <div class="load_bar">
-                <input type="file" id="files" name="files[]" multiple />
-                <output id="list" style="float: right;"></output>
+                Load a JSON document: <input type="file" id="files" name="files[]" multiple value="Load"/>
+                Save a JSON document: <input type="button" id="saveDocument" value="Save" />
             </div>
         </div>
 
